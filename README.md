@@ -6,9 +6,35 @@ Kapton is also the name of a polymer used on the Apollo Lunar Module.
 
 ## Usage
 
+### A schema
+
+This is the GraphQL schema used in the examples below in GraphQL schema
+language.
+
+```gql
+Type user {
+  uid: String!
+  lastname: String!
+}
+
+Type RootQuery {
+  user(limit: Integer): [User!]
+}
+
+Type RootMutation {
+  addUser(uid: String!, lastname: String!) : User
+}
+
+schema {
+  query: RootQuery
+  mutation: RootMutation
+}
+```
+
 ### Configuration
 
-You'll probably use a javascript entry point "packaged" using a tool like webpack or browserify. The following example use webpack
+You'll probably use a javascript entry point "packaged" using a tool like
+webpack or browserify. The following example use webpack
 
 ```js
 import ApolloClient, { createNetworkInterface } from 'apollo-client';
@@ -25,6 +51,7 @@ const apolloClient = new ApolloClient({
 // get a behavior "factory"
 export const graphql = Kapton({apolloClient});
 
+// get a query document
 export const myQuery = gql`
   query myQuery($limit: Integer!) {
     users(limit: $limit) {
@@ -34,6 +61,7 @@ export const myQuery = gql`
   }
 `;
 
+// get a mutation document
 export const myMutation = gql`
   mutation myMutation($uid: String, $lastname: String) {
     addUser($uid, $lastname) {
@@ -44,7 +72,9 @@ export const myMutation = gql`
 `;
 ```
 
-In this example Webpack configuration will use a library "var" output with the library set to "Apollo", so the graphql exported variable will be accessible through "Apollo.graphql".
+In this example Webpack configuration will use a library "var" output with the
+library set to "Apollo", so the graphql exported variable will be accessible
+through "Apollo.graphql".
 
 ### Usage in components
 
@@ -113,7 +143,8 @@ This small example contains a query and a mutation.
       },
 
       _createUser: function() {
-        // mutate is the default name of the mutation function added to the element
+        // mutate is the default name of the mutation function added to the
+        // element
         this.addUser({
           variables: {
             uid: this.$.uidInput.value,
@@ -175,7 +206,8 @@ The option object can contains the following keys:
 
 ### Query result object (aka "data")
 
-The result contains all the keys you'll find in the data key of the apollo result. It also contains the following keys allowing advanced usages :
+The result contains all the keys you'll find in the data key of the apollo
+result. It also contains the following keys allowing advanced usages :
 
 * refetch()
 * fetchMore()
@@ -202,4 +234,5 @@ The option object can contains the following keys:
 
 * name : the name of the function added to the element to call this mutation. Default is "mutate".
 
-The mutation function (aka "mutate") can also contains options (variables, optimisticResponse, updateQueries, ...). See apollo-client documentation.
+The mutation function (aka "mutate") can also contains options (variables,
+optimisticResponse, updateQueries, ...). See apollo-client documentation.
