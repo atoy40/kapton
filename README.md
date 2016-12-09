@@ -12,16 +12,16 @@ This is the GraphQL schema used in the examples below in GraphQL schema
 language.
 
 ```graphql
-Type user {
+type user {
   uid: String!
   lastname: String!
 }
 
-Type RootQuery {
-  user(limit: Integer): [User!]
+type RootQuery {
+  users(limit: Integer): [User!]
 }
 
-Type RootMutation {
+type RootMutation {
   addUser(uid: String!, lastname: String!) : User
 }
 
