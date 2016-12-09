@@ -45,6 +45,10 @@ import gql from 'graphql-tag';
 const apolloClient = new ApolloClient({
   networkInterface: createNetworkInterface({
     uri: 'http://localhost:8080/graphql',
+    // define unique id of User's
+    dataIdFromObject: (result) => {
+      return result.__typename+'_'+result.uid;
+    }
   }),
 });
 
@@ -151,7 +155,7 @@ This small example contains a query and a mutation.
             lastname: this.$.lastnameInput.value,
           },
           // generate a fake result to speed-up UI. To incorporate it to the
-          // query above, you'll have to use updateQueries also.
+          // query above, you'll have to use updateQueries or resultBehaviors.
           optimisticResponse: {
             __typename: 'RootMutation',
             addUser: {
