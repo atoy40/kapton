@@ -11,7 +11,7 @@ Kapton is also the name of a polymer used on the Apollo Lunar Module.
 This is the GraphQL schema used in the examples below in GraphQL schema
 language.
 
-```gql
+```graphql
 Type user {
   uid: String!
   lastname: String!
