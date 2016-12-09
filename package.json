@@ -1,18 +1,27 @@
 {
   "name": "kapton",
   "version": "0.0.1",
-  "description": "Polymer Apollo Integration",
+  "description": "Polymer and Apollo client Integration",
   "main": "index.js",
   "scripts": {
     "compile": "babel --presets es2015 -d lib/ src/",
     "prepublish": "npm run compile",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atoy40/kapton.git"
+  },
   "keywords": [
     "polymer",
     "apollo"
   ],
+  "author": "Anthony Hinsinger <anthony.hinsinger@gmail.com>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/atoy40/kapton/issues"
+  },
+  "homepage": "https://github.com/atoy40/kapton",
   "peerDependencies": {
     "apollo-client": "^0.5.0"
   },
