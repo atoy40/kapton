@@ -53,10 +53,10 @@ const apolloClient = new ApolloClient({
 });
 
 // get a behavior "factory"
-export const graphql = Kapton({apolloClient});
+const graphql = Kapton({apolloClient});
 
 // get a query document
-export const myQuery = gql`
+const USERS_LIST = gql`
   query myQuery($limit: Integer!) {
     users(limit: $limit) {
       uid
@@ -66,7 +66,7 @@ export const myQuery = gql`
 `;
 
 // get a mutation document
-export const myMutation = gql`
+const ADD_USER = gql`
   mutation myMutation($uid: String, $lastname: String) {
     addUser($uid, $lastname) {
       uid
@@ -74,6 +74,8 @@ export const myMutation = gql`
     }
   }
 `;
+
+export { graphql, USERS_LIST, ADD_USER };
 ```
 
 In this example Webpack configuration will use a library "var" output with the
@@ -115,8 +117,8 @@ This small example contains a query and a mutation.
       is:"my-graphql",
 
       behaviors:[
-        Apollo.graphql(Apollo.myQuery, 'myQueryOpts'),
-        Apollo.graphql(Apollo.myMutation, { name: "addUser" }),
+        Apollo.graphql(Apollo.USERS_LIST, 'myQueryOpts'),
+        Apollo.graphql(Apollo.ADD_USER, { name: "addUser" }),
       ],
 
       properties: {
