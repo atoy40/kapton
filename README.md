@@ -12,7 +12,7 @@ You'll probably use a javascript entry point "packaged" using a tool like webpac
 
 ```js
 import ApolloClient, { createNetworkInterface } from 'apollo-client';
-import { Kapton } from 'kapton';
+import Kapton from 'kapton';
 import gql from 'graphql-tag';
 
 // Create the apollo client
@@ -119,7 +119,8 @@ This small example contains a query and a mutation.
             uid: this.$.uidInput.value,
             lastname: this.$.lastnameInput.value,
           },
-          // generate a fake result to speed-up UI. To incorporate it to the query above, you'll have to use updateQueries also.
+          // generate a fake result to speed-up UI. To incorporate it to the
+          // query above, you'll have to use updateQueries also.
           optimisticResponse: {
             __typename: 'RootMutation',
             addUser: {
@@ -128,6 +129,17 @@ This small example contains a query and a mutation.
               lastname: this.$.lastnameInput.value,
             }
           },
+          // this resultBehavior will add the mutation result (the real one as
+          // well as the fake one) to the "users" list in the store. It means
+          // dependings query will be updated.
+          resultBehaviors: [
+            {
+              type: 'ARRAY_INSERT',
+              resultPath: ['addUser'],
+              storePath: ['users'],
+              where: 'APPEND',
+            }
+          ]
         }).then(function(result) {
           this._resetForm();
         }.bind(this));
