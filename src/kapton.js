@@ -1,3 +1,5 @@
+import omit from 'lodash.omit';
+
 function parser(document) {
   // variables
   let fragments, queries, mutations, subscriptions, variables, definitions, type, name;
@@ -76,7 +78,6 @@ export default function({ apolloClient }) {
   return function(document, options) {
 
     const operation = parser(document);
-    console.log(operation);
 
     class GraphQL {
 
@@ -119,10 +120,8 @@ export default function({ apolloClient }) {
           return; // skip an already skipped
         }
 
-        let unskipped = !change.base.skip && this.currentOptions && this.currentOptions.skip;
-        console.log(unskipped);
         this.currentOptions = change.base;
-        this.subscribeToQuery(el, unskipped);
+        this.subscribeToQuery(el);
       }
 
       ready(el) {
@@ -136,7 +135,7 @@ export default function({ apolloClient }) {
       }
 
       generateQueryOptions() {
-        return this.currentOptions;
+        return omit(this.currentOptions, ['skip', 'name']);
       }
 
       createQuery() {
@@ -147,18 +146,21 @@ export default function({ apolloClient }) {
         }
       }
 
-      subscribeToQuery(el, forceSetVars = false) {
+      subscribeToQuery(el) {
         if (operation.type === "Mutation") {
           return;
         }
 
-        if (this.querySubscription || forceSetVars) {
+        if (this.querySubscription) {
           this.queryObservable.setOptions(this.generateQueryOptions());
           return;
         }
 
         if (!this.queryObservable) {
           this.createQuery();
+        } else {
+          // unskipped query, update options.
+          this.queryObservable.setOptions(this.generateQueryOptions());
         }
 
         const next = (result) => {
@@ -202,7 +204,6 @@ export default function({ apolloClient }) {
 
       unsubscribeFromQuery() {
         if (this.querySubscription) {
-          console.log("unsub");
           this.querySubscription.unsubscribe();
           delete this.querySubscription;
         }
@@ -214,25 +215,20 @@ export default function({ apolloClient }) {
     return {
 
       beforeRegister() {
-        console.log("beforeRegister");
         graphql.init(this);
       },
 
       registered: function() {
-        console.log("registered");
       },
 
       ready() {
-        console.log("ready");
         graphql.ready(this);
       },
 
       attached() {
-        console.log("attached");
       },
 
       detached() {
-        console.log("detached");
         //graphql.detached(this);
       }
     };

@@ -12,13 +12,13 @@ This is the GraphQL schema used in the examples below in GraphQL schema
 language.
 
 ```graphql
-type user {
+type User {
   uid: String!
   lastname: String!
 }
 
 type RootQuery {
-  users(limit: Integer): [User!]
+  users(limit: Int): [User!]
 }
 
 type RootMutation {
@@ -45,11 +45,11 @@ import gql from 'graphql-tag';
 const apolloClient = new ApolloClient({
   networkInterface: createNetworkInterface({
     uri: 'http://localhost:8080/graphql',
-    // define unique id of User's
-    dataIdFromObject: (result) => {
-      return result.__typename+'_'+result.uid;
-    }
   }),
+  // define unique id of User's
+  dataIdFromObject: (result) => {
+    return result.__typename+'_'+result.uid;
+  }
 });
 
 // get a behavior "factory"
@@ -57,7 +57,7 @@ const graphql = Kapton({apolloClient});
 
 // get a query document
 const USERS_LIST = gql`
-  query myQuery($limit: Integer!) {
+  query myQuery($limit: Int!) {
     users(limit: $limit) {
       uid
       lastname
@@ -68,7 +68,7 @@ const USERS_LIST = gql`
 // get a mutation document
 const ADD_USER = gql`
   mutation myMutation($uid: String, $lastname: String) {
-    addUser($uid, $lastname) {
+    addUser(uid: $uid, lastname: $lastname) {
       uid
       lastname
     }
