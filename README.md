@@ -158,8 +158,8 @@ This small example contains a query and a mutation.
           },
           // generate a fake result to speed-up UI. To incorporate it to the
           // query above, you'll have to use updateQueries or resultBehaviors.
+          // This is optional.
           optimisticResponse: {
-            __typename: 'RootMutation',
             addUser: {
               __typename: 'User',
               uid: this.$.uidInput.value,
@@ -167,13 +167,14 @@ This small example contains a query and a mutation.
             }
           },
           // this resultBehavior will add the mutation result (the real one as
-          // well as the fake one) to the "users" list in the store. It means
-          // dependings query will be updated.
+          // well as the optimistic one) to the "users" list in the store. It
+          // means dependings queries will be updated.
+          // This is optional.
           resultBehaviors: [
             {
               type: 'ARRAY_INSERT',
               resultPath: ['addUser'],
-              storePath: ['users'],
+              storePath: ['ROOT_QUERY', 'users'],
               where: 'APPEND',
             }
           ]
@@ -187,32 +188,40 @@ This small example contains a query and a mutation.
 
 ## Details
 
-In all examples, we'll assume the behavior factory is Apollo.graphql() (see usage example above)
+In all examples, we'll assume the behavior factory is Apollo.graphql() (see
+usage example above).
 
-### Query behavior
+### Query or subscription behavior
 
 Behavior factory can be used this ways :
 
 ```js
 // using reactive options
-Apollo.graphql(queryDocument, "options_property_name");
+Apollo.graphql(queryOrSubscriptionDocument, "options_property_name");
 // using static options
-Apollo.graphql(queryDocument, { name: "myData", variables: { foo: "bar " } });
+Apollo.graphql(queryOrSubscriptionDocument, { name: "myData", variables: { foo: "bar " } });
 // using default options
-Apollo.graphql(queryDocument);
+Apollo.graphql(queryOrSubscriptionDocument);
 ```
+
+Subscriptions will require more configuration and set-up you've seen in the
+example above. Check Apollo graphql-subscriptions and subscriptions-transport-ws
+project on github. It implements GraphQL subscriptions using websocket.
 
 ### Query options
 
 The option object can contains the following keys:
 
-* skip : a boolean to subscribe/unsubscribe the apollo QueryObservable. Typical usage is to wait a user to be authenticated to fire queries.
-* name : the name of the element property that will get query result. Default is "data".
-* All options availables in the apollo watchQuery function.
+* skip : a boolean to subscribe/unsubscribe the apollo observable ("freeze" the
+query or subscription). Typical usage is to wait a user to be authenticated to
+fire queries or stop receiving subscription results.
+* name : the name of the element property that will get query or subscription
+result. Default is "data".
+* All options availables in the apollo watchQuery() or subscribe() function.
 
-### Query result object (aka "data")
+### Query result object (default to "data")
 
-The result contains all the keys you'll find in the data key of the apollo
+The result contains all the keys you'd have found in the data key of the graphql
 result. It also contains the following keys allowing advanced usages :
 
 * refetch()
@@ -222,8 +231,15 @@ result. It also contains the following keys allowing advanced usages :
 * stopPolling()
 * subscribeToMore()
 * variables : an object containing variables used to get this result.
-* loading : boolean, useful if you set notifyOnNetworkStatusChange to true in query options.
-* networkStatus : the status of the request ,useful if you set notifyOnNetworkStatusChange to true in query options
+* loading : boolean, useful if you set notifyOnNetworkStatusChange to true in
+query options.
+* networkStatus : the status of the request, useful if you set
+notifyOnNetworkStatusChange to true in query options
+
+### Subscription result object (default to "data")
+
+The result only contains the key(s) you'd have found in the data key of the
+graphql result.
 
 ### Mutation behavior
 
@@ -238,7 +254,8 @@ Apollo.graphql(mutationDocument, { name: "createFoo" });
 
 The option object can contains the following keys:
 
-* name : the name of the function added to the element to call this mutation. Default is "mutate".
+* name : the name of the function added to the element to call this mutation.
+Default is "mutate".
 
 The mutation function (aka "mutate") can also contains options (variables,
 optimisticResponse, updateQueries, ...). See apollo-client documentation.

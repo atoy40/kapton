@@ -1,62 +1,5 @@
 import omit from 'lodash.omit';
-
-function parser(document) {
-  // variables
-  let fragments, queries, mutations, subscriptions, variables, definitions, type, name;
-
-  if(!document && !document.kind) {
-    // tslint:disable-line
-    throw new Error(`Argument of ${document} passed to parser was not a valid GraphQL Document. You may need to use 'graphql-tag' or another method to convert your operation into a document`);
-  }
-
-  fragments = document.definitions.filter(
-    (x) => x.kind === 'FragmentDefinition'
-  );
-
-  /*fragments = createFragment({
-    kind: 'Document',
-    definitions: [...fragments],
-  });*/
-
-  queries = document.definitions.filter(
-    (x) => x.kind === 'OperationDefinition' && x.operation === 'query'
-  );
-
-  mutations = document.definitions.filter(
-    (x) => x.kind === 'OperationDefinition' && x.operation === 'mutation'
-  );
-
-  subscriptions = document.definitions.filter(
-    (x) => x.kind === 'OperationDefinition' && x.operation === 'subscription'
-  );
-
-  if (fragments.length && (!queries.length || !mutations.length || !subscriptions.length)) {
-    throw new Error(`Passing only a fragment to 'graphql' is not yet supported. You must include a query, subscription or mutation as well`);
-  }
-
-  if (queries.length && mutations.length && mutations.length) {
-    if ((queries.length + mutations.length + mutations.length) > 1) {
-      throw new Error(`poly-apollo only supports a query, subscription, or a mutation per Behavior. ${document} had ${queries.length} queries, ${subscriptions.length} subscriptions and ${mutations.length} muations. You can use 'compose' to join multiple operation types to a component`);
-    }
-  }
-
-  type = queries.length ? "Query" : "Mutation";
-  if (!queries.length && !mutations.length) type = "Subscription";
-
-  definitions = queries.length ? queries : mutations;
-  if (!queries.length && !mutations.length) definitions = subscriptions;
-
-  if (definitions.length !== 1) {
-    throw new Error(`poly-apollo only supports one defintion per HOC. ${document} had ${definitions.length} definitions. You can use 'compose' to join multiple operation types to a component`);
-  }
-
-  variables = definitions[0].variableDefinitions || [];
-  let hasName = definitions[0].name && definitions[0].name.kind === 'Name';
-  name = hasName ? definitions[0].name.value : 'data'; // fallback to using data if no name
-  fragments = fragments.length ? fragments : [];
-
-  return { name, type, variables, fragments };
-}
+import parser from './parser';
 
 export default function({ apolloClient }) {
 
@@ -78,6 +21,20 @@ export default function({ apolloClient }) {
   return function(document, options) {
 
     const operation = parser(document);
+    const rid = Math.floor(1000000000 + (Math.random() * 9000000000));
+
+    function getInstance(el) {
+      return el[`__kapton_instance_${rid}`];
+    }
+
+    function init(el) {
+      if (typeof options === "string") {
+        el[`__kapton_observer_${rid}`] = function(change) {
+          getInstance(this).optionsChanged(this, change);
+        };
+        el._addComplexObserverEffect(`__kapton_observer_${rid}(${options}.*)`);
+      }
+    }
 
     class GraphQL {
 
@@ -86,26 +43,6 @@ export default function({ apolloClient }) {
         this.querySubscription = null;
         this.initialOptions = options;
         this.computedOptions = typeof options === "string";
-        this.initialLoadingDone = false;
-        this.rid = Math.floor(1000000000 + (Math.random() * 9000000000));
-      }
-
-      init(el) {
-        if (this.computedOptions) {
-          const self = this;
-          el[`__apollo_${this.rid}`] = function(change) {
-            self.optionsChanged(this, change);
-          };
-          el._addComplexObserverEffect(`__apollo_${this.rid}(${this.initialOptions}.*)`);
-        } else {
-          // static options
-          this.currentOptions = this.initialOptions;
-        }
-
-        if (operation.type === "Mutation") {
-          this.setDataToProp(el);
-          return;
-        }
       }
 
       optionsChanged(el, change) {
@@ -115,7 +52,7 @@ export default function({ apolloClient }) {
 
         if (change.base.skip) {
           if (this.currentOptions && !this.currentOptions.skip) {
-            return this.unsubscribeFromQuery()
+            return this.unsubscribeFromQuery();
           }
           return; // skip an already skipped
         }
@@ -125,11 +62,13 @@ export default function({ apolloClient }) {
       }
 
       ready(el) {
-        if (operation.type === "Mutation" || this.querySubscription) {
-          return;
+        if (operation.type === "Mutation") {
+          this.currentOptions = this.initialOptions;
+          this.setDataToProp(el);
         }
 
         if (!this.computedOptions) {
+          this.currentOptions = this.initialOptions;
           this.subscribeToQuery(el);
         }
       }
@@ -141,6 +80,10 @@ export default function({ apolloClient }) {
       createQuery() {
         if (operation.type === "Query") {
           this.queryObservable = apolloClient.watchQuery(Object.assign({
+            query: document
+          }, this.generateQueryOptions()));
+        } else if (operation.type === "Subscription") {
+          this.queryObservable = apolloClient.subscribe(Object.assign({
             query: document
           }, this.generateQueryOptions()));
         }
@@ -159,11 +102,14 @@ export default function({ apolloClient }) {
         if (!this.queryObservable) {
           this.createQuery();
         } else {
-          // unskipped query, update options.
+          // unskipped query, update options before re-subscribing
           this.queryObservable.setOptions(this.generateQueryOptions());
         }
 
         const next = (result) => {
+          if (operation.type === "Subscription") {
+            result = { data: result };
+          }
           this.setDataToProp(el, result);
         };
 
@@ -210,22 +156,21 @@ export default function({ apolloClient }) {
       }
     }
 
-    const graphql = new GraphQL({ options });
-
     return {
 
       beforeRegister() {
-        graphql.init(this);
+        init(this);
       },
 
-      registered: function() {
+      created: function() {
+        this[`__kapton_instance_${rid}`] = new GraphQL({ options });
       },
 
       ready() {
-        graphql.ready(this);
       },
 
       attached() {
+        getInstance(this).ready(this);
       },
 
       detached() {
