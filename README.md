@@ -4,6 +4,8 @@ A way of using GraphQL (through Apollo Client) in your Polymer elements.
 
 Kapton is also the name of a polymer used on the Apollo Lunar Module.
 
+A sample application is available at https://github.com/atoy40/kapton-sample
+
 ## Usage
 
 ### A schema
