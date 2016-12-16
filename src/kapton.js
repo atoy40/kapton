@@ -10,7 +10,7 @@ export default function({ apolloClient }) {
     ['variables', 'refetch', 'fetchMore', 'updateQuery', 'startPolling', 'stopPolling', 'subscribeToMore'].forEach((key) => {
       if (typeof observable[key] === 'function') {
         fields[key] = observable[key].bind(observable);
-      } else {
+      } else if (observable[key] !== undefined) {
         fields[key] = observable[key];
       }
     });
@@ -57,7 +57,7 @@ export default function({ apolloClient }) {
           return; // skip an already skipped
         }
 
-        this.currentOptions = change.base;
+        this.currentOptions = Object.assign({}, change.base);
         this.subscribeToQuery(el);
       }
 
@@ -95,8 +95,11 @@ export default function({ apolloClient }) {
         }
 
         if (this.querySubscription) {
-          this.queryObservable.setOptions(this.generateQueryOptions());
-          return;
+          if (typeof this.queryObservable.setOptions === "function") {
+            this.queryObservable.setOptions(this.generateQueryOptions());
+            return;
+          }
+          this.unsubscribeFromQuery();
         }
 
         if (!this.queryObservable) {
@@ -107,9 +110,6 @@ export default function({ apolloClient }) {
         }
 
         const next = (result) => {
-          if (operation.type === "Subscription") {
-            result = { data: result };
-          }
           this.setDataToProp(el, result);
         };
 
@@ -138,12 +138,21 @@ export default function({ apolloClient }) {
           });
         }
 
-        const { data, loading, networkStatus } = result;
+        const elmData = {};
 
-        const elmData = Object.assign({}, data, {
-          loading,
-          networkStatus
-        }, observableQueryFields(this.queryObservable));
+        if (operation.type === "Subscription") {
+          Object.assign(elmData, result, {
+            loading: true,
+            variables: this.currentOptions.variables
+          }, observableQueryFields(this.queryObservable));
+
+        } else {
+          const { data, loading, networkStatus } = result;
+          Object.assign(elmData, data, {
+            loading,
+            networkStatus
+          }, observableQueryFields(this.queryObservable));
+        }
 
         el.set(name, elmData);
       }
@@ -152,6 +161,11 @@ export default function({ apolloClient }) {
         if (this.querySubscription) {
           this.querySubscription.unsubscribe();
           delete this.querySubscription;
+
+          // subscription doesn't support setOptions, need to recreate observable
+          if (operation.type === "Subscription") {
+            delete this.queryObservable;
+          }
         }
       }
     }
