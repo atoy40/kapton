@@ -28,7 +28,7 @@ export default function parser(document) {
     (x) => x.kind === 'OperationDefinition' && x.operation === 'subscription'
   );
 
-  if (fragments.length && (!queries.length || !mutations.length || !subscriptions.length)) {
+  if (fragments.length && !(queries.length || mutations.length || subscriptions.length)) {
     throw new Error(`Passing only a fragment to 'graphql' is not yet supported. You must include a query, subscription or mutation as well`);
   }
 
