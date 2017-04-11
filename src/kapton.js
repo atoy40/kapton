@@ -32,7 +32,7 @@ export default function({ apolloClient }) {
         el[`__kapton_observer_${rid}`] = function(change) {
           getInstance(this).optionsChanged(this, change);
         };
-        el._addComplexObserverEffect(`__kapton_observer_${rid}(${options}.*)`);
+        el._createMethodObserver(`__kapton_observer_${rid}(${options}.*)`);
       }
     }
 
@@ -172,7 +172,7 @@ export default function({ apolloClient }) {
 
     return {
 
-      beforeRegister() {
+      registered() {
         init(this);
       },
 
