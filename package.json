@@ -1,6 +1,6 @@
 {
   "name": "kapton",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Polymer and Apollo client Integration",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/atoy40/kapton",
   "peerDependencies": {
-    "apollo-client": "^0.8.0"
+    "apollo-client": "^1.0.0"
   },
   "dependencies": {
     "lodash.omit": "^4.5.0"

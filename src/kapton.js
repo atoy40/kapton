@@ -32,7 +32,14 @@ export default function({ apolloClient }) {
         el[`__kapton_observer_${rid}`] = function(change) {
           getInstance(this).optionsChanged(this, change);
         };
-        el._addComplexObserverEffect(`__kapton_observer_${rid}(${options}.*)`);
+
+        if (el._addComplexObserverEffect) {
+          el._addComplexObserverEffect(`__kapton_observer_${rid}(${options}.*)`);
+        } else if (el._createMethodObserver) {
+          el._createMethodObserver(`__kapton_observer_${rid}(${options}.*)`);
+        } else {
+          console.log("Unable to register polymer observer");
+        }
       }
     }
 
@@ -172,15 +179,18 @@ export default function({ apolloClient }) {
 
     return {
 
+      // v2 lifecycle
+      beforeRegister() {
+        init(this);
+      },
+
+      // v1 lifecycle
       beforeRegister() {
         init(this);
       },
 
       created: function() {
         this[`__kapton_instance_${rid}`] = new GraphQL({ options });
-      },
-
-      ready() {
       },
 
       attached() {
