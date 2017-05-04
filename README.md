@@ -1,6 +1,7 @@
 # Kapton
 
-A way of using GraphQL (through Apollo Client) in your Polymer elements.
+A way of using GraphQL (through Apollo Client) in your Polymer 2.0 elements
+through class mixins.
 
 Kapton is also the name of a polymer used on the Apollo Lunar Module.
 
@@ -40,7 +41,7 @@ webpack or browserify. The following example use webpack
 
 ```js
 import ApolloClient, { createNetworkInterface } from 'apollo-client';
-import Kapton from 'kapton';
+import Kapton, { createKaptonMixin } from 'kapton';
 import gql from 'graphql-tag';
 
 // Create the apollo client
@@ -54,7 +55,7 @@ const apolloClient = new ApolloClient({
   }
 });
 
-// get a behavior "factory"
+// get a mixin "factory"
 const graphql = Kapton({apolloClient});
 
 // get a query document
@@ -77,12 +78,12 @@ const ADD_USER = gql`
   }
 `;
 
-export { graphql, USERS_LIST, ADD_USER };
+export { graphql, createKaptonMixin, USERS_LIST, ADD_USER };
 ```
 
 In this example Webpack configuration will use a library "var" output with the
-library set to "Apollo", so the graphql exported variable will be accessible
-through "Apollo.graphql".
+library set to "App", so exported variables will be accessible through the
+global "App" object (for example App.graphql or App['graphql']).
 
 ### Usage in components
 
@@ -115,15 +116,15 @@ This small example contains a query and a mutation.
   </template>
 
 <script>
-  Polymer({
-      is:"my-graphql",
+  const UserListMixin = App.createKaptonMixin(App.graphql, App.USERS_LIST, 'myQueryOpts');
+  const AddUserMixin = App.createKaptonMixin(App.graphql, App.ADD_USER, { name: "addUser" });
 
-      behaviors:[
-        Apollo.graphql(Apollo.USERS_LIST, 'myQueryOpts'),
-        Apollo.graphql(Apollo.ADD_USER, { name: "addUser" }),
-      ],
+  class MyGraphql extends UserListMixin(AddUserMixin(Polymer.Element)) {
 
-      properties: {
+    static get is() { return 'my-graphql'; }
+
+    static get properties() {
+      return {
 
         authenticated: Boolean,
 
@@ -138,72 +139,57 @@ This small example contains a query and a mutation.
 
         // the default variable receiving query result
         data: Object,
-      },
+      };
+    }
 
-      _computeMyQueryOptions: function(limit, authenticated) {
-        return {
-          variables: {
-            limit: limit,
-          },
-          forceFetch: true,
-          skip: !authenticated,
-        };
-      },
+    _computeMyQueryOptions(limit, authenticated) {
+      return {
+        variables: {
+          limit: limit,
+        },
+        forceFetch: true,
+        skip: !authenticated,
+      };
+    }
 
-      _createUser: function() {
-        // mutate is the default name of the mutation function added to the
-        // element
-        this.addUser({
-          variables: {
-            uid: this.$.uidInput.value,
-            lastname: this.$.lastnameInput.value,
-          },
-          // generate a fake result to speed-up UI. To incorporate it to the
-          // query above, you'll have to use updateQueries or resultBehaviors.
-          // This is optional.
-          optimisticResponse: {
-            addUser: {
-              __typename: 'User',
-              uid: this.$.uidInput.value,
-              lastname: this.$.lastnameInput.value,
-            }
-          },
-          // this resultBehavior will add the mutation result (the real one as
-          // well as the optimistic one) to the "users" list in the store. It
-          // means dependings queries will be updated.
-          // This is optional.
-          resultBehaviors: [
-            {
-              type: 'ARRAY_INSERT',
-              resultPath: ['addUser'],
-              storePath: ['ROOT_QUERY', 'users'],
-              where: 'APPEND',
-            }
-          ]
-        }).then(function(result) {
-          this._resetForm();
-        }.bind(this));
-      }
-  });
+    _createUser() {
+      // mutate is the default name of the mutation function added to the
+      // element
+      this.addUser({
+        variables: {
+          uid: this.$.uidInput.value,
+          lastname: this.$.lastnameInput.value,
+        }
+      }).then(function(result) {
+        this._resetForm();
+      }.bind(this));
+    }
+  }
+  customElements.define(MyGraphql.is, MyGraphql);
 </script>
 ```
 
 ## Details
 
-In all examples, we'll assume the behavior factory is Apollo.graphql() (see
-usage example above).
+In all examples, we'll assume the mixin factory is App.graphql (seeusage example
+above).
 
-### Query or subscription behavior
+If your element have more than one Kapton mixin, it can be useful to use the
+helper function createKaptonMixin :
 
-Behavior factory can be used this ways :
+`mixin = createKaptonMixin(factory, document, options)`
+
+### Query or subscription Mixin
+
+Mixin factory can be used this ways :
 
 ```js
 // using reactive options
-Apollo.graphql(queryOrSubscriptionDocument, "options_property_name");
+App.graphql(queryOrSubscriptionDocument, "options_property_name", superClass);
 // using static options
-Apollo.graphql(queryOrSubscriptionDocument, { name: "myData", variables: { foo: "bar " } });
+App.graphql(queryOrSubscriptionDocument, { name: "myData", variables: { foo: "bar " } }, superClass);
 // using default options
-Apollo.graphql(queryOrSubscriptionDocument);
+App.graphql(queryOrSubscriptionDocument, null, superClass);
 ```
 
 Subscriptions will require more configuration and set-up you've seen in the
@@ -243,13 +229,13 @@ notifyOnNetworkStatusChange to true in query options
 The result only contains the key(s) you'd have found in the data key of the
 graphql result.
 
-### Mutation behavior
+### Mutation Mixin
 
 ```js
 // without options
-Apollo.graphql(mutationDocument);
+App.graphql(mutationDocument, null, superClass);
 // using static options
-Apollo.graphql(mutationDocument, { name: "createFoo" });
+App.graphql(mutationDocument, { name: "createFoo" }, superClass);
 ```
 
 ### Mutation options
@@ -261,3 +247,44 @@ Default is "mutate".
 
 The mutation function (aka "mutate") can also contains options (variables,
 optimisticResponse, updateQueries, ...). See apollo-client documentation.
+
+### More complexe examples
+
+the addUser mutation can use more advanced features of Apollo client, for
+example optimisticResponse and updateQueries. Check Apollo documentation for
+more informations. In the first example, the addUser result will not be added to
+the user list. The following code fix this problem :
+
+```js
+_createUser() {
+  // mutate is the default name of the mutation function added to the
+  // element
+  this.addUser({
+    variables: {
+      uid: this.$.uidInput.value,
+      lastname: this.$.lastnameInput.value,
+    },
+    // generate a fake result to speed-up UI. To incorporate it to the
+    // query above, you'll have to use updateQueries.
+    // This is optional.
+    optimisticResponse: {
+      addUser: {
+        __typename: 'User',
+        uid: this.$.uidInput.value,
+        lastname: this.$.lastnameInput.value,
+      }
+    },
+    // this updateQueries will add the mutation result (the real one as
+    // well as the optimistic one) to the "users" list in the store. It
+    // means dependings queries will be updated.
+    // This is optional.
+    updateQueries: {
+      myQuery: (prev, { mutationResult }) => {
+        return Object.assign({}, prev, { users: [ ...prev.users, mutationResult.data.addUser ] });
+      }
+    }
+  }).then(function(result) {
+    this._resetForm();
+  }.bind(this));
+}
+```
