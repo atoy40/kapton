@@ -179,12 +179,6 @@ export default function({ apolloClient }) {
 
     return {
 
-      // v2 lifecycle
-      beforeRegister() {
-        init(this);
-      },
-
-      // v1 lifecycle
       beforeRegister() {
         init(this);
       },
